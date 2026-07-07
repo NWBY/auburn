@@ -1,0 +1,1 @@
+"""Example Auburn applications."""

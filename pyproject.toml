@@ -1,0 +1,39 @@
+[build-system]
+requires = ["maturin>=1,<2"]
+build-backend = "maturin"
+
+[project]
+name = "auburn"
+version = "0.1.0"
+description = "FastAPI-inspired Python ergonomics with a Rust-native request pipeline."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pydantic>=2",
+]
+
+[dependency-groups]
+dev = [
+    "maturin>=1,<2",
+    "pytest>=8",
+    "ruff>=0.6",
+]
+
+[project.scripts]
+auburn = "auburn.cli:main"
+
+[tool.maturin]
+manifest-path = "auburn_core/Cargo.toml"
+module-name = "auburn_core"
+python-source = "python"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
