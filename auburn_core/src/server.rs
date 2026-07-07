@@ -17,8 +17,13 @@ pub fn serve(py: Python<'_>, routes: Bound<'_, PyAny>, host: String, port: u16) 
                 .await
                 .map_err(|err| pyo3::exceptions::PyRuntimeError::new_err(err.to_string()))?;
             axum::serve(listener, app)
+                .with_graceful_shutdown(shutdown_signal())
                 .await
                 .map_err(|err| pyo3::exceptions::PyRuntimeError::new_err(err.to_string()))
         })
     })
+}
+
+async fn shutdown_signal() {
+    let _ = tokio::signal::ctrl_c().await;
 }
