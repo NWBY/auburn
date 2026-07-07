@@ -8,3 +8,5 @@ venv/
 target/
 dist/
 *.egg-info/
+docs/slices/
+SPEC.md
