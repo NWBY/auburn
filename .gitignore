@@ -8,5 +8,7 @@ venv/
 target/
 dist/
 *.egg-info/
+python/auburn_core/*.so
 docs/slices/
 SPEC.md
+*.so
