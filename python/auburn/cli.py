@@ -27,18 +27,24 @@ def main(argv: list[str] | None = None) -> None:
     bench_parser.add_argument("--url", default="http://127.0.0.1:8000/health")
     bench_parser.add_argument("--requests", type=int, default=1000)
     bench_parser.add_argument("--warmup", type=int, default=50)
+    bench_parser.add_argument("--json", action="store_true")
 
     args = parser.parse_args(argv)
 
     if args.command in {"run", "dev"}:
+        ensure_cwd_on_path()
         app = load_app(args.target)
-        app.run(host=args.host, port=args.port)
+        try:
+            app.run(host=args.host, port=args.port)
+        except KeyboardInterrupt:
+            return
         return
 
     if args.command == "bench":
+        ensure_cwd_on_path()
         from benchmarks.health_latency import run_benchmark
 
-        run_benchmark(url=args.url, requests=args.requests, warmup=args.warmup)
+        run_benchmark(url=args.url, requests=args.requests, warmup=args.warmup, as_json=args.json)
 
 
 def load_app(target: str) -> App:
@@ -46,12 +52,16 @@ def load_app(target: str) -> App:
     if not separator:
         raise SystemExit("App target must be in module:attribute form.")
 
-    cwd = str(Path.cwd())
-    if cwd not in sys.path:
-        sys.path.insert(0, cwd)
+    ensure_cwd_on_path()
 
     module = importlib.import_module(module_name)
     app: Any = getattr(module, attr_name)
     if not isinstance(app, App):
         raise SystemExit(f"{target} did not resolve to an auburn.App instance.")
     return app
+
+
+def ensure_cwd_on_path() -> None:
+    cwd = str(Path.cwd())
+    if cwd not in sys.path:
+        sys.path.insert(0, cwd)
