@@ -7,13 +7,8 @@ use axum::Router;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 
+use crate::request::RoutePlan;
 use crate::response;
-
-pub struct RoutePlan {
-    pub method: String,
-    pub path: String,
-    pub handler: Py<PyAny>,
-}
 
 pub fn plans_from_python(routes: Bound<'_, PyAny>) -> PyResult<Vec<RoutePlan>> {
     let route_list = routes.downcast::<PyList>()?;
@@ -38,6 +33,7 @@ pub fn plans_from_python(routes: Bound<'_, PyAny>) -> PyResult<Vec<RoutePlan>> {
             method,
             path,
             handler,
+            params: vec![],
         });
     }
 
