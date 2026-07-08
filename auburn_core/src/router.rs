@@ -7,7 +7,7 @@ use axum::Router;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 
-use crate::request::RoutePlan;
+use crate::request::{ParamPlan, RoutePlan};
 use crate::response;
 
 pub fn plans_from_python(routes: Bound<'_, PyAny>) -> PyResult<Vec<RoutePlan>> {
@@ -28,12 +28,23 @@ pub fn plans_from_python(routes: Bound<'_, PyAny>) -> PyResult<Vec<RoutePlan>> {
             .get_item("handler")?
             .ok_or_else(|| pyo3::exceptions::PyValueError::new_err("route missing handler"))?
             .unbind();
+        let params_list = route
+            .get_item("params")?
+            .ok_or_else(|| pyo3::exceptions::PyValueError::new_err("route missing params"))?
+            .downcast_into::<PyList>()?;
+
+        let mut params = Vec::with_capacity(params_list.len());
+
+        for item in params_list.iter() {
+            let param = item.downcast::<PyDict>()?;
+            params.push(ParamPlan::from_python(param)?);
+        }
 
         plans.push(RoutePlan {
             method,
             path,
             handler,
-            params: vec![],
+            params,
         });
     }
 
