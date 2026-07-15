@@ -55,12 +55,28 @@ pub fn build_router(plans: Vec<RoutePlan>) -> PyResult<Router> {
     let mut router = Router::new();
 
     for plan in plans {
-        let path = plan.path.clone();
+        let path = axum_path(&plan.path);
         let method_router = method_router(Arc::new(plan))?;
         router = router.route(&path, method_router);
     }
 
     Ok(router)
+}
+
+fn axum_path(path: &str) -> String {
+    path.split("/")
+        .map(|segment| {
+            if let Some(name) = segment
+                .strip_prefix("{")
+                .and_then(|segment| segment.strip_suffix("}"))
+            {
+                format!(":{name}")
+            } else {
+                segment.to_owned()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("/")
 }
 
 fn method_router(plan: Arc<RoutePlan>) -> PyResult<MethodRouter> {
@@ -92,4 +108,19 @@ async fn handle(plan: Arc<RoutePlan>) -> Response {
         },
         Err(err) => response::python_error_response(err),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::axum_path;
+
+    #[test]
+    fn translates_auburn_path_parameters_for_axum() {
+        assert_eq!(axum_path("/health"), "/health");
+        assert_eq!(axum_path("/users/{user_id}"), "/users/:user_id");
+        assert_eq!(
+            axum_path("/users/{user_id}/posts/{post_id}"),
+            "/users/:user_id/posts/:post_id",
+        );
+    }
 }
