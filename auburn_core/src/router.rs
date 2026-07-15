@@ -1,5 +1,7 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
+use axum::extract::Path;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::routing::{delete, get, patch, post, put, MethodRouter};
@@ -80,14 +82,18 @@ fn axum_path(path: &str) -> String {
 }
 
 fn method_router(plan: Arc<RoutePlan>) -> PyResult<MethodRouter> {
-    let method = plan.method.as_str();
+    let method = plan.method.clone();
+    let handler = move |Path(path_params): Path<HashMap<String, String>>| {
+        let plan = Arc::clone(&plan);
+        handle(plan, path_params)
+    };
 
-    let route = match method {
-        "GET" => get(move || handle(plan)),
-        "POST" => post(move || handle(plan)),
-        "PUT" => put(move || handle(plan)),
-        "PATCH" => patch(move || handle(plan)),
-        "DELETE" => delete(move || handle(plan)),
+    let route = match method.as_str() {
+        "GET" => get(handler),
+        "POST" => post(handler),
+        "PUT" => put(handler),
+        "PATCH" => patch(handler),
+        "DELETE" => delete(handler),
         other => {
             return Err(pyo3::exceptions::PyValueError::new_err(format!(
                 "unsupported HTTP method {other}"
@@ -98,7 +104,7 @@ fn method_router(plan: Arc<RoutePlan>) -> PyResult<MethodRouter> {
     Ok(route)
 }
 
-async fn handle(plan: Arc<RoutePlan>) -> Response {
+async fn handle(plan: Arc<RoutePlan>, _path_params: HashMap<String, String>) -> Response {
     Python::with_gil(|py| match plan.handler.call0(py) {
         Ok(value) => match response::json_from_python(value.bind(py)) {
             Ok(body) => {
